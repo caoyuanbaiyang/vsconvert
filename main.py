@@ -1,4 +1,10 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# @Time    : 2020/1/10 16:08
+# @Author  : TYQ
+# @File    : main.py
+# @Software: win10 python3
+
 from vsconvert import VsConvert
 import sys
 import os
