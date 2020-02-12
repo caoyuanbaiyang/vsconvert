@@ -1,0 +1,14 @@
+group1:
+  - host1
+  - host2
+  - host3
+
+group2:
+  - host4
+  - host5
+  - host6
+
+group1and2:
+  children:
+    - group1
+    - group2
