@@ -9,6 +9,10 @@ import shutil
 import re
 from fnmatch import fnmatchcase as match
 import copy
+import chardet
+
+
+REPLACE_PATTERN = r'(.*)\{lib:(.*):(.*)\}(.*)'
 
 
 def isContrainSpecialCharacter(string):
@@ -111,26 +115,31 @@ class ModelClass(object):
                 else:
                     alert_excludes = replace_item["alert_exclude"]
                 if is_need_alert(file, cfg_dir, cfg_file, alert_excludes):
+                    # replace 可支持lib,如随机密码函数randpwd
                     self.__alter_file_inner(file, replace_item["regexp"], replace_item["replace"])
 
     def __alter_file_inner(self, file, pattern, replace):
-        try:
-            with open(file, "r", encoding="utf8", newline="") as f1, open("%s.bak" % file, "w", encoding="utf8", newline="") as f2:
-                for (rownum, line) in enumerate(f1):
-                    line_new = re.sub(pattern, replace, line)
-                    if line != line_new:
-                        self.mylog.info("  匹配行{}, 内容:{}".format(rownum, line.replace("\n", "")))
-                        self.mylog.info("  替换行{}, 内容:{}".format(rownum, line_new.replace("\n", "")))
-                    f2.write(line_new)
-            os.remove(file)
-            os.rename("%s.bak" % file, file)
-        except:
-            with open(file, "r", newline="") as f1, open("%s.bak" % file, "w", newline="") as f2:
-                for (rownum, line) in enumerate(f1):
-                    line_new = re.sub(pattern, replace, line)
-                    if line != line_new:
-                        self.mylog.info("  匹配行{}, 内容:{}".format(rownum, line.replace("\n", "")))
-                        self.mylog.info("  替换行{}, 内容:{}".format(rownum, line_new.replace("\n", "")))
-                    f2.write(line_new)
-            os.remove(file)
-            os.rename("%s.bak" % file, file)
+        replace_str = replace
+        rem = re.match(REPLACE_PATTERN, replace)
+
+        fbytes = min(32, os.path.getsize(file))
+        result = chardet.detect(open(file, 'rb').read(fbytes))
+        encoding = result['encoding']
+        with open(file, "r", encoding=encoding, newline="") as f1, open("%s.bak" % file, "w", encoding=encoding,
+                                                                        newline="") as f2:
+            for (rownum, line) in enumerate(f1):
+                if rem:
+                    # replace 可支持lib,如随机密码函数randpwd
+                    func = rem.group(2)
+                    para = rem.group(3)
+                    import lib.replace_lib as replace_lib
+                    m = eval(f"replace_lib.{func}")(para)
+                    r_p = r'\1' + m + r'\4'
+                    replace_str = re.sub(REPLACE_PATTERN, r_p, replace)
+                line_new = re.sub(pattern, replace_str, line)
+                if line != line_new:
+                    self.mylog.info("  匹配行{}, 内容:{}".format(rownum, line.replace("\n", "")))
+                    self.mylog.info("  替换行{}, 内容:{}".format(rownum, line_new.replace("\n", "")))
+                f2.write(line_new)
+        os.remove(file)
+        os.rename("%s.bak" % file, file)
