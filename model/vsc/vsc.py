@@ -134,9 +134,9 @@ class ModelClass(object):
                     para = rem.group(3)
                     import lib.replace_lib as replace_lib
                     m = eval(f"replace_lib.{func}")(para)
-                    r_p = r'\1' + m + r'\4'
-                    replace_str = re.sub(REPLACE_PATTERN, r_p, replace)
-                line_new = re.sub(pattern, replace_str, line)
+                    repl = r'\1' + m + r'\4'
+                    repl_new = re.sub(REPLACE_PATTERN, repl, replace)
+                line_new = re.sub(pattern, repl_new, line)
                 if line != line_new:
                     self.mylog.info("  匹配行{}, 内容:{}".format(rownum, line.replace("\n", "")))
                     self.mylog.info("  替换行{}, 内容:{}".format(rownum, line_new.replace("\n", "")))
