@@ -1,5 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#!/usr/bin/env python
+
 # @Time    : 2020/1/14 14:46
 # @Author  : TYQ
 # @File    : vsconvert.py
@@ -119,14 +120,13 @@ class ModelClass(object):
                     self.__alter_file_inner(file, replace_item["regexp"], replace_item["replace"])
 
     def __alter_file_inner(self, file, pattern, replace):
-        replace_str = replace
+        repl_new = replace
         rem = re.match(REPLACE_PATTERN, replace)
 
-        fbytes = min(32, os.path.getsize(file))
-        result = chardet.detect(open(file, 'rb').read(fbytes))
-        encoding = result['encoding']
-        with open(file, "r", encoding=encoding, newline="") as f1, open("%s.bak" % file, "w", encoding=encoding,
-                                                                        newline="") as f2:
+        # fbytes = min(32, os.path.getsize(file))
+        # result = chardet.detect(open(file, 'rb').read(fbytes))
+        # encoding = result['encoding']
+        with open(file, "r", newline="") as f1, open("%s.bak" % file, "w", newline="") as f2:
             for (rownum, line) in enumerate(f1, 1):
                 if rem:
                     # replace 可支持lib,如随机密码函数randpwd
