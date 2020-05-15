@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/env python
+# !/usr/bin/env python
 
 # @Time    : 2020/1/14 14:46
 # @Author  : TYQ
@@ -12,7 +12,6 @@ import shutil
 import re
 from fnmatch import fnmatchcase as match
 import copy
-
 
 REPLACE_PATTERN = r'(.*)\{lib:(.*):(.*)\}(.*)'
 
