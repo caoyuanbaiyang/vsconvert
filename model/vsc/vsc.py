@@ -7,13 +7,11 @@
 # @Software: win10 python3
 
 
-
 import os
 import shutil
 import re
 from fnmatch import fnmatchcase as match
 import copy
-import chardet
 
 
 REPLACE_PATTERN = r'(.*)\{lib:(.*):(.*)\}(.*)'
