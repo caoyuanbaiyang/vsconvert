@@ -81,7 +81,7 @@ class ModelClass(object):
                 exit
         # 文件夹拷贝，主机名级别
         shutil.copytree(source_dir, dest_dir)
-        self.mylog.info(f"目录{source_dir}拷贝结束，\n 拷贝目的{dest_dir}")
+        self.mylog.info(f"目录: {source_dir} 拷贝结束，拷贝目的: {dest_dir}")
 
         # 读取配置信息
         for i, param_item in enumerate(param, start=1):
@@ -160,8 +160,11 @@ class ModelClass(object):
                     repl_new = re.sub(REPLACE_PATTERN, repl, replace)
                 line_new = re.sub(pattern, repl_new, line)
                 if line != line_new:
-                    self.mylog.info("  匹配行{}, 内容:{}".format(rownum, line.replace("\n", "")))
-                    self.mylog.info("  替换行{}, 内容:{}".format(rownum, line_new.replace("\n", "")))
+                    # self.mylog.info("  匹配行{}, 内容:{}".format(rownum, line.replace("\n", "")))
+                    # self.mylog.info("  替换行{}, 内容:{}".format(rownum, line_new.replace("\n", "")))
+                    ln = line.replace("\n", "").replace("\r", "")
+                    self.mylog.info(f"  匹配行{rownum}, 内容:{ln}")
+                    self.mylog.info(f"  替换行{rownum}, 内容:{ln}")
                 f2.write(line_new)
         os.remove(file)
         os.rename("%s.bak.tyq" % file, file)
