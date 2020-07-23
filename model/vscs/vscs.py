@@ -160,11 +160,9 @@ class ModelClass(object):
                     repl_new = re.sub(REPLACE_PATTERN, repl, replace)
                 line_new = re.sub(pattern, repl_new, line)
                 if line != line_new:
-                    # self.mylog.info("  匹配行{}, 内容:{}".format(rownum, line.replace("\n", "")))
-                    # self.mylog.info("  替换行{}, 内容:{}".format(rownum, line_new.replace("\n", "")))
                     ln = line.replace("\n", "").replace("\r", "")
                     self.mylog.info(f"  匹配行{rownum}, 内容:{ln}")
-                    self.mylog.info(f"  替换行{rownum}, 内容:{ln}")
+                    self.mylog.info(f"  替换行{rownum}, 内容:{line_new}")
                 f2.write(line_new)
         os.remove(file)
         os.rename("%s.bak.tyq" % file, file)
