@@ -122,7 +122,7 @@ class ModelClass(object):
         else:
             if isContrainSpecialCharacter(rpl_dir):
                 (dirname, filename) = os.path.split(rpl_dir)
-                self.alert_dir_file(dirname + "\\", "-r", dest_dir)
+                self.alert_dir_file(dirname + "\\", "-r", dest_dir, switchparam, filename)
             else:
                 self.alert_file(os.path.join(dest_dir, rpl_dir), switchparam)
 
