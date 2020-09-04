@@ -83,8 +83,8 @@ class ModelClass(object):
         copy_ignore_list = None
         for i, param_item in enumerate(param, start=1):
             if "copy_ignores" in param_item and "ignores" in param_item["copy_ignores"]:
-                copy_ignore_list = param_item["copy_ignores"]["ignores"]
-        shutil.copytree(source_dir, dest_dir, ignore=shutil.ignore_patterns(*copy_ignore_list))
+                copy_ignore_list = shutil.ignore_patterns(*param_item["copy_ignores"]["ignores"])
+        shutil.copytree(source_dir, dest_dir, ignore=copy_ignore_list)
 
         self.mylog.info(f"目录: {source_dir} 拷贝结束，拷贝目的: {dest_dir}")
 
