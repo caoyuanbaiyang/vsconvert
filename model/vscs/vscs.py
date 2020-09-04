@@ -80,7 +80,12 @@ class ModelClass(object):
                 self.mylog.cri(f"目录{dest_dir}以存在，选择退出")
                 exit
         # 文件夹拷贝，主机名级别
-        shutil.copytree(source_dir, dest_dir)
+        copy_ignore_list = None
+        for i, param_item in enumerate(param, start=1):
+            if "copy_ignores" in param_item and "ignores" in param_item["copy_ignores"]:
+                copy_ignore_list = param_item["copy_ignores"]["ignores"]
+        shutil.copytree(source_dir, dest_dir, ignore=shutil.ignore_patterns(*copy_ignore_list))
+
         self.mylog.info(f"目录: {source_dir} 拷贝结束，拷贝目的: {dest_dir}")
 
         # 读取配置信息
