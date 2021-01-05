@@ -38,7 +38,9 @@ ACTION:
 ```
 
 ###### vsc，版本转换模块1
-模块将循环读取source/hosts配置下面的的文件及目录，对文件拷贝到dest/hosts文件夹下（copy_exclude配置的除外），并根据版本转换规则进行转换
+模块将循环读取source/hosts配置下面的的文件及目录，对文件拷贝到dest/hosts文件夹下（copy_exclude配置的除外），
+并根据版本转换规则进行转换。
+
 *模块参数*
 
 ```yaml
@@ -61,8 +63,9 @@ ACTION:
 
 
 ###### vscs，版本转换模块1
-模块将循环读取source/hosts配置下面的的文件及目录，对文件拷贝到dest/hosts文件夹下（copy_ignores配置的除外），并根据版本转换规则进行转换
-dirs与rpls配置必须成对配置，vscs将所有dest/hosts目录下dirs配置的文件或目录进行rpls下面的转换
+模块将循环读取source/hosts配置下面的的文件及目录，对文件拷贝到dest/hosts文件夹下（copy_ignores配置的除外），
+并根据版本转换规则进行转换，dirs与rpls配置必须成对配置，vscs模块将所有dest/hosts目录下dirs配置的文件或目录进行rpls下面的转换
+
 *模块参数*
 ```yaml
           - copy_ignores:
