@@ -109,7 +109,7 @@ class VsConvert(object):
         pub_param = self.action_cfg["PUBLIC"]
         if os.path.isdir(pub_param["dest"]):
             t = pub_param["dest"]
-            if input(f"目录{t}已存在，是否删除(y/n) ") == 'y':
+            if input(f"目录 {t} 已存在，是否删除(y/n) ") == 'y':
                 shutil.rmtree(pub_param["dest"])
         os.makedirs(pub_param["dest"])
         # 结束-测试用，正式发布时去掉
