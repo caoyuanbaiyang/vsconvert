@@ -65,6 +65,7 @@ def is_binary_file(file_path):
         file.close()
     return not any(initial_bytes.startswith(bom) for bom in _TEXT_BOMS) and b'\0' in initial_bytes
 
+
 class ModelClass(object):
     def __init__(self, mylog):
         self.mylog = mylog
@@ -156,8 +157,10 @@ class ModelClass(object):
         fbytes = min(20480, os.path.getsize(file))
         result = chardet.detect(open(file, 'rb').read(fbytes))
         encoding = result['encoding']
-        with open(file, "r", newline="", encoding=encoding) as f1, open("%s.bak.tyq" % file, "w", newline="",
-                                                                        encoding=encoding) as f2:
+        with open(file, "r", newline="", encoding=encoding, errors='replace') as f1, open("%s.bak.tyq" % file, "w",
+                                                                                          newline="",
+                                                                                          encoding=encoding,
+                                                                                          errors='replace') as f2:
             for (rownum, line) in enumerate(f1, 1):
                 if rem:
                     # replace 可支持lib,如随机密码函数randpwd
