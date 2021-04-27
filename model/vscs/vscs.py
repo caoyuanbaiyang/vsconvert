@@ -42,7 +42,7 @@ def exclude_files(filename, dir_filename, excludes=[]):  # 是否属于不下载
 
 def is_need_alert(file, excludes):
     (dirname, filename) = os.path.split(file)
-    if os.path.getsize(file) < 1024000 and not exclude_files(dirname, filename, excludes):
+    if os.path.getsize(file) < 1024000 and not exclude_files(filename=filename, dir_filename=file, excludes=excludes):
         rz = True
     else:
         rz = False
