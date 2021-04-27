@@ -40,11 +40,13 @@ def exclude_files(filename, dir_filename, excludes=[]):  # 是否属于不下载
     return False
 
 
-def is_need_alert(file, excludes):
+def is_need_alter(file, excludes):
     (dirname, filename) = os.path.split(file)
     if os.path.getsize(file) < 1024000 and not exclude_files(filename=filename, dir_filename=file, excludes=excludes):
         rz = True
     else:
+        print(f"文件小于1024000且不在alter_exclude配置中才会修改")
+        print(f"文件大小:{os.path.getsize(file)},文件名称:{filename} , 路径:{file}")
         rz = False
     return rz
 
@@ -100,9 +102,9 @@ class ModelClass(object):
                 for dir_item in dirs:
                     rpl_dir = list(dir_item.keys())[0]
                     rec_identify = list(dir_item.values())[0]
-                    self.alert_dir_file(rpl_dir, rec_identify, dest_dir, param_item["rpls"])
+                    self.alter_dir_file(rpl_dir, rec_identify, dest_dir, param_item["rpls"])
 
-    def alert_dir_file(self, rpl_dir, rec_identify, dest_dir, switchparam, filename_patten="*"):
+    def alter_dir_file(self, rpl_dir, rec_identify, dest_dir, switchparam, filename_patten="*"):
         # rpl_dir 主机下面的目录
         # rec_identify 是否目录循环
         # dest_dir   主机级别的绝对路径
@@ -119,10 +121,10 @@ class ModelClass(object):
                     path_file = os.path.join(dest_dir, rpl_dir, file)
                     # 如果是文件
                     if not os.path.isdir(path_file) and match(file, filename_patten):
-                        self.alert_file(path_file, switchparam)
+                        self.alter_file(path_file, switchparam)
                     # 如果是目录且循环
                     if os.path.isdir(path_file) and rec_identify == "+r":
-                        self.alert_dir_file(os.path.join(rpl_dir, file) + "\\", rec_identify, dest_dir, switchparam)
+                        self.alter_dir_file(os.path.join(rpl_dir, file) + "\\", rec_identify, dest_dir, switchparam)
 
         # dirs 配置项为文件
         else:
@@ -130,22 +132,22 @@ class ModelClass(object):
                 (dirname, filename) = os.path.split(rpl_dir)
                 # self.alert_dir_file(dirname + "\\", "-r", dest_dir, switchparam, filename)
                 if dirname == "":
-                    self.alert_dir_file(dest_dir + "\\", "-r", dest_dir, switchparam, filename)
+                    self.alter_dir_file(dest_dir + "\\", "-r", dest_dir, switchparam, filename)
                 else:
-                    self.alert_dir_file(os.path.join(dest_dir, dirname) + "\\", "-r", dest_dir, switchparam, filename)
+                    self.alter_dir_file(os.path.join(dest_dir, dirname) + "\\", "-r", dest_dir, switchparam, filename)
             else:
-                self.alert_file(os.path.join(dest_dir, rpl_dir), switchparam)
+                self.alter_file(os.path.join(dest_dir, rpl_dir), switchparam)
 
-    def alert_file(self, file, switchparam):
+    def alter_file(self, file, switchparam):
         # 如果file 是二进制文件则跳过
         if is_binary_file(file):
             return
         for switch_item in switchparam:
-            if not ('alert_exclude' in switch_item):
-                alert_excludes = []
+            if not ('alter_exclude' in switch_item):
+                alter_excludes = []
             else:
-                alert_excludes = switch_item["alert_exclude"]
-            if is_need_alert(file, alert_excludes):
+                alter_excludes = switch_item["alter_exclude"]
+            if is_need_alter(file, alter_excludes):
                 # replace 可支持lib,如随机密码函数randpwd
                 self.__alter_file_inner(file, switch_item["regexp"], switch_item["replace"])
 
