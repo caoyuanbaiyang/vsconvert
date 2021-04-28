@@ -8,6 +8,7 @@
 
 
 import os
+import stat
 import shutil
 import re
 from fnmatch import fnmatchcase as match
@@ -92,14 +93,15 @@ class ModelClass(object):
             if os.path.isfile(src_name):
                 self.mylog.info("文件拷贝:{}".format(src_name))
                 shutil.copy(src_name, dest_name)
-                self.alert_file(dest_name, switchparam, pub_param, hostname)
+                os.chmod(dest_name, stat.S_IRWXU)
+                self.alter_file(dest_name, switchparam, pub_param, hostname)
             else:
                 if not os.path.isdir(dest_name):
                     self.mylog.info("目录拷贝:{}".format(src_name))
                     os.makedirs(dest_name)
                 self.dir_copy(src_name, dest_name, switchparam, copy_excludes, pub_param, hostname)
 
-    def alert_file(self, file, switchparam, pub_param, hostname):
+    def alter_file(self, file, switchparam, pub_param, hostname):
         (dirname, filename) = os.path.split(file)
         for switchitem in list(switchparam.items()):
             file_param = switchitem[0]
@@ -113,11 +115,11 @@ class ModelClass(object):
                 cfg_file = os.path.join(pub_param["dest"], hostname, file_param)
 
             for replace_item in switchitem[1]:
-                if not ('alert_exclude' in replace_item):
-                    alert_excludes = []
+                if not ('alter_exclude' in replace_item):
+                    alter_excludes = []
                 else:
-                    alert_excludes = replace_item["alert_exclude"]
-                if is_need_alert(file, cfg_dir, cfg_file, alert_excludes):
+                    alter_excludes = replace_item["alter_exclude"]
+                if is_need_alert(file, cfg_dir, cfg_file, alter_excludes):
                     # replace 可支持lib,如随机密码函数randpwd
                     self.__alter_file_inner(file, replace_item["regexp"], replace_item["replace"])
 
