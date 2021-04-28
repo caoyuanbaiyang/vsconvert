@@ -52,11 +52,11 @@ ACTION:
                  # DEV 转换 ,alert_exclude 中指定无需转换的文件
                  - regexp: '"dev"(.*)(\d)(\d)(\d)'
                    replace: '"dev"\g<1>\g<2>3\g<4>'
-                   alert_exclude: []
+                   alter_exclude: []
                '*.sh':
                  - regexp: 'INIT_DEV_ID=(\d)(\d)(\d)'
                    replace: 'INIT_DEV_ID=\g<1>3\3'
-                   alert_exclude: []
+                   alter_exclude: []
                # copy_exclude中指定无需进行复制的文件
                copy_exclude: ['.[clmsv]*', '*.result', 'info.*', '*.info','oradiag*','sunyardlog']
 ```
