@@ -40,13 +40,12 @@ def exclude_files(filename, dir_filename, excludes=[]):  # 是否属于不下载
     return False
 
 
-def is_need_alter(file, excludes):
+def is_need_alter(mylog, file, excludes, limit_size=1024000):
     (dirname, filename) = os.path.split(file)
-    if os.path.getsize(file) < 1024000 and not exclude_files(filename=filename, dir_filename=file, excludes=excludes):
+    if os.path.getsize(file) < limit_size and not exclude_files(filename=filename, dir_filename=file, excludes=excludes):
         rz = True
     else:
-        print(f"文件小于1024000且不在alter_exclude配置中才会修改")
-        print(f"文件大小:{os.path.getsize(file)},文件名称:{filename} , 路径:{file}")
+        mylog.info(f"忽略文件:文件大小-{os.path.getsize(file)},文件名称-{filename} ,路径-{file},limit_size-{limit_size}")
         rz = False
     return rz
 
@@ -102,7 +101,6 @@ class ModelClass(object):
                 for dir_item in dirs:
                     rpl_dir = list(dir_item.keys())[0]
                     rec_identify = list(dir_item.values())[0]
-                    # self.alter_dir_item(rpl_dir, rec_identify, dest_dir, param_item["rpls"])
 
                     # dirs 配置项为文件夹
                     if rpl_dir.endswith("\\") or rpl_dir == "$HOME":
@@ -130,11 +128,12 @@ class ModelClass(object):
             if os.path.isdir(path_file):
                 for switch_item in switchparam:
                     switch_item_list = []
-                    if not ('alter_exclude' in switch_item):
+                    if not ("alter_exclude" in switch_item):
                         alter_excludes = []
                     else:
                         alter_excludes = switch_item["alter_exclude"]
                     if file in alter_excludes:
+                        self.mylog.info(f"忽略目录:{path_file}")
                         continue
                     if rec_identify == "+r":
                         switch_item_list.append(switch_item)
@@ -149,7 +148,7 @@ class ModelClass(object):
                 alter_excludes = []
             else:
                 alter_excludes = switch_item["alter_exclude"]
-            if is_need_alter(file, alter_excludes):
+            if is_need_alter(self.mylog, file, alter_excludes):
                 # replace 可支持lib,如随机密码函数randpwd
                 self.__alter_file_inner(file, switch_item["regexp"], switch_item["replace"])
 
