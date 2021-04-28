@@ -77,15 +77,15 @@ ACTION:
               # IP 转换
               - regexp: '12.1.x.x'
                 replace: '22.1.x.x'
-                alert_exclude: []
+                alter_exclude: []
               # dev 转换
               - regexp: 'INIT_DEV_ID=(\d)(\d)(\d)'
                 replace: 'INIT_DEV_ID=\g<1>3\3'
-                alert_exclude: []
+                alter_exclude: []
               
               - regexp: '"dev" : (\d)(\d)(\d)'
                 replace: '"dev" : \g<1>3\3'
-                alert_exclude: []
+                alter_exclude: []
           - dirs:
               - 'conf_1\': +r
               - '*.sh.bak':
@@ -93,7 +93,7 @@ ACTION:
               # IP 转换
               - regexp: '12.1.110.38'
                 replace: '22.1.110.30'
-                alert_exclude: [ ]
+                alter_exclude: [ ]
 ```
 #### 参与贡献
 
