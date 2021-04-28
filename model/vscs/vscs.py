@@ -102,41 +102,43 @@ class ModelClass(object):
                 for dir_item in dirs:
                     rpl_dir = list(dir_item.keys())[0]
                     rec_identify = list(dir_item.values())[0]
-                    self.alter_dir_file(rpl_dir, rec_identify, dest_dir, param_item["rpls"])
+                    # self.alter_dir_item(rpl_dir, rec_identify, dest_dir, param_item["rpls"])
 
-    def alter_dir_file(self, rpl_dir, rec_identify, dest_dir, switchparam, filename_patten="*"):
-        # rpl_dir 主机下面的目录
-        # rec_identify 是否目录循环
-        # dest_dir   主机级别的绝对路径
-        # switchparam  rpls下面的配置信息
-        # filename_patten 配置的文件名模糊匹配
+                    # dirs 配置项为文件夹
+                    if rpl_dir.endswith("\\") or rpl_dir == "$HOME":
+                        if rpl_dir == "$HOME":
+                            rpl_dir = ""
+                        self.alter_dir(os.path.join(dest_dir, rpl_dir), rec_identify, param_item["rpls"])
 
-        # dirs 配置项为文件夹
-        if rpl_dir.endswith("\\") or rpl_dir == "$HOME":
-            if rpl_dir == "$HOME":
-                rpl_dir = ""
-            # 循环读取rpl_dir 下面的文件或文件夹
-            if os.path.exists(os.path.join(dest_dir, rpl_dir)):
-                for file in os.listdir(os.path.join(dest_dir, rpl_dir)):
-                    path_file = os.path.join(dest_dir, rpl_dir, file)
-                    # 如果是文件
-                    if not os.path.isdir(path_file) and match(file, filename_patten):
-                        self.alter_file(path_file, switchparam)
-                    # 如果是目录且循环
-                    if os.path.isdir(path_file) and rec_identify == "+r":
-                        self.alter_dir_file(os.path.join(rpl_dir, file) + "\\", rec_identify, dest_dir, switchparam)
+                    # dirs 配置项为带*号的,带*号只能对文件进行配置，因此目录循环模式为关闭状态
+                    elif isContrainSpecialCharacter(rpl_dir):
+                        (dirname, filename) = os.path.split(rpl_dir)
+                        self.alter_dir(os.path.join(dest_dir, dirname), "-r", param_item["rpls"], filename)
 
-        # dirs 配置项为文件
-        else:
-            if isContrainSpecialCharacter(rpl_dir):
-                (dirname, filename) = os.path.split(rpl_dir)
-                # self.alert_dir_file(dirname + "\\", "-r", dest_dir, switchparam, filename)
-                if dirname == "":
-                    self.alter_dir_file(dest_dir + "\\", "-r", dest_dir, switchparam, filename)
-                else:
-                    self.alter_dir_file(os.path.join(dest_dir, dirname) + "\\", "-r", dest_dir, switchparam, filename)
-            else:
-                self.alter_file(os.path.join(dest_dir, rpl_dir), switchparam)
+                    # dirs 配置项为纯文件
+                    else:
+                        self.alter_file(os.path.join(dest_dir, rpl_dir), param_item["rpls"])
+
+    # filename_patten 只是给具体文件配置或带*号配置时使用
+    def alter_dir(self, v_dir, rec_identify, switchparam, filename_patten="*"):
+        for file in os.listdir(v_dir):
+            path_file = os.path.join(v_dir, file)
+            # 如果是文件
+            if not os.path.isdir(path_file) and match(file, filename_patten):
+                self.alter_file(path_file, switchparam)
+            # 如果是目录且循环
+            if os.path.isdir(path_file):
+                for switch_item in switchparam:
+                    switch_item_list = []
+                    if not ('alter_exclude' in switch_item):
+                        alter_excludes = []
+                    else:
+                        alter_excludes = switch_item["alter_exclude"]
+                    if file in alter_excludes:
+                        continue
+                    if rec_identify == "+r":
+                        switch_item_list.append(switch_item)
+                        self.alter_dir(path_file, rec_identify, switch_item_list)
 
     def alter_file(self, file, switchparam):
         # 如果file 是二进制文件则跳过
