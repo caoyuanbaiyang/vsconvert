@@ -10,11 +10,16 @@ import os
 import shutil
 import re
 from fnmatch import fnmatchcase as match
-import copy
-
 import chardet
 
 REPLACE_PATTERN = r'(.*)\{lib:(.*):(.*)\}(.*)'
+
+textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7f})
+
+
+def is_binary_file(f):
+    content = open(f, 'rb').read(1024)
+    return bool(content.translate(None, textchars))
 
 
 def isContrainSpecialCharacter(string):
@@ -42,29 +47,13 @@ def exclude_files(filename, dir_filename, excludes=[]):  # 是否属于不下载
 
 def is_need_alter(mylog, file, excludes, limit_size=1024000):
     (dirname, filename) = os.path.split(file)
-    if os.path.getsize(file) < limit_size and not exclude_files(filename=filename, dir_filename=file, excludes=excludes):
+    if os.path.getsize(file) < limit_size and not exclude_files(filename=filename, dir_filename=file,
+                                                                excludes=excludes):
         rz = True
     else:
         mylog.info(f"忽略文件:文件大小-{os.path.getsize(file)},文件名称-{filename} ,路径-{file},limit_size-{limit_size}")
         rz = False
     return rz
-
-
-#: BOMs to indicate that a file is a text file even if it contains zero bytes.
-_TEXT_BOMS = (
-    codecs.BOM_UTF16_BE,
-    codecs.BOM_UTF16_LE,
-    codecs.BOM_UTF32_BE,
-    codecs.BOM_UTF32_LE,
-    codecs.BOM_UTF8,
-)
-
-
-def is_binary_file(file_path):
-    with open(file_path, 'rb') as file:
-        initial_bytes = file.read(8192)
-        file.close()
-    return not any(initial_bytes.startswith(bom) for bom in _TEXT_BOMS) and b'\0' in initial_bytes
 
 
 class ModelClass(object):
@@ -142,6 +131,7 @@ class ModelClass(object):
     def alter_file(self, file, switchparam):
         # 如果file 是二进制文件则跳过
         if is_binary_file(file):
+            self.mylog.info(f"二进制文件跳过,{file}")
             return
         for switch_item in switchparam:
             if not ('alter_exclude' in switch_item):
