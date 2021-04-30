@@ -95,15 +95,21 @@ class ModelClass(object):
                     if rpl_dir.endswith("\\") or rpl_dir == "$HOME":
                         if rpl_dir == "$HOME":
                             rpl_dir = ""
+                        if not os.path.exists(os.path.join(dest_dir, rpl_dir)):
+                            continue
                         self.alter_dir(os.path.join(dest_dir, rpl_dir), rec_identify, param_item["rpls"])
 
                     # dirs 配置项为带*号的,带*号只能对文件进行配置，因此目录循环模式为关闭状态
                     elif isContrainSpecialCharacter(rpl_dir):
                         (dirname, filename) = os.path.split(rpl_dir)
+                        if not os.path.exists(os.path.join(dest_dir, dirname)):
+                            continue
                         self.alter_dir(os.path.join(dest_dir, dirname), "-r", param_item["rpls"], filename)
 
                     # dirs 配置项为纯文件
                     else:
+                        if not os.path.exists(os.path.join(dest_dir, rpl_dir)):
+                            continue
                         self.alter_file(os.path.join(dest_dir, rpl_dir), param_item["rpls"])
 
     # filename_patten 只是给具体文件配置或带*号配置时使用
@@ -130,6 +136,8 @@ class ModelClass(object):
 
     def alter_file(self, file, switchparam):
         # 如果file 是二进制文件则跳过
+        if not os.path.exists(file):
+            return
         if is_binary_file(file):
             self.mylog.info(f"二进制文件跳过,{file}")
             return
