@@ -28,7 +28,8 @@ PUBLIC:
   dest: C:\Users\hp\Desktop\临时文件夹\vsconvert\dir2\tra   # 版本转换目标目录
 ACTION:
   - hosts: [Simutransaction1, Simutransaction2]  # source 下面的文件夹
-    # hosts: ALL 表示对source目录下所有子文件夹进行操作
+    # hosts: ALL 表示对source下所有文件夹(主机)执行任务，支持lable[x:y]范围设定，
+    # 如MACS[1:16]表示MACS1、MACS2、MACS3...一直到MACS16的文件夹(主机)
     # 
     tasks:
       - name: 任务说明
@@ -36,6 +37,10 @@ ACTION:
           模块参数1: 模块参数1value
           模块参数2: 模块参数2value
 ```
+###### GetHostList, 获取主机列表
+*模块参数*
+
+        # 无
 
 ###### vsc，版本转换模块1
 模块将循环读取source/hosts配置下面的的文件及目录，对文件拷贝到dest/hosts文件夹下（copy_exclude配置的除外），
@@ -60,7 +65,6 @@ ACTION:
                # copy_exclude中指定无需进行复制的文件
                copy_exclude: ['.[clmsv]*', '*.result', 'info.*', '*.info','oradiag*','sunyardlog']
 ```
-
 
 ###### vscs，版本转换模块2
 模块将循环读取source/hosts配置下面的的文件及目录，对文件拷贝到dest/hosts文件夹下（copy_ignores配置的除外），
