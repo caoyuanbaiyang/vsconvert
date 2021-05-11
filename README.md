@@ -16,8 +16,29 @@ python
 #### 使用说明
 
 1. groups.yaml 中创建主机(文件夹)组群相关信息，可将部分主机设定为一个组，方便后面的action文件调用
-2. 按需创建action文件，action.yaml是默认文件，文件名称可自定义 cmd>vsconvert.exe #运行的是action.yaml中的配置 cmd>vsconvert.exe test.yaml #运行的是config/test.yaml 中的配置
+2. 按需创建action文件，action.yaml是默认文件，文件名称可自定义 
+   - cmd>vsconvert.exe #运行的是action.yaml中的配置
+   - cmd>vsconvert.exe test.yaml #运行的是config/test.yaml 中的配置
 3. 建议创建指定bat文件，关联action文件，以方便执行相关任务
+
+#### group.yaml文件配置说明
+对同类机器进行创建群组，方便维护
+
+```yaml
+group1:
+  - host1
+  - host2
+
+group2:
+  - host3
+  - host4
+
+
+apart:
+  children:
+    - group1
+    - group2
+```
 
 #### action文件配置说明
 ```yaml
@@ -27,7 +48,7 @@ PUBLIC:
   source: C:\Users\hp\Desktop\临时文件夹\vsconvert\dir1\tra # 版本转换源目录
   dest: C:\Users\hp\Desktop\临时文件夹\vsconvert\dir2\tra   # 版本转换目标目录
 ACTION:
-  - hosts: [Simutransaction1, Simutransaction2]  # source 下面的文件夹
+  - hosts: [Simutransaction1, Simutransaction2]  # source 下面的文件夹或group.yaml中的组
     # hosts: ALL 表示对source下所有文件夹(主机)执行任务，支持lable[x:y]范围设定，
     # 如MACS[1:16]表示MACS1、MACS2、MACS3...一直到MACS16的文件夹(主机)
     # 
@@ -69,7 +90,7 @@ ACTION:
 ###### vscs，版本转换模块2
 模块将循环读取source/hosts配置下面的的文件及目录，对文件拷贝到dest/hosts文件夹下（copy_ignores配置的除外），
 并根据版本转换规则进行转换，dirs与rpls配置必须成对配置，vscs模块将所有dest/hosts目录下dirs配置的文件或目录进行rpls下面的转换
-
+dirs下面的目录或文件，可以配置为错误文件，程序会跳过，这样保证对多主机不同目录的集中配置的可运行
 *模块参数*
 ```yaml
           - copy_ignores:
