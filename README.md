@@ -120,6 +120,16 @@ dirs下面的目录或文件，可以配置为错误文件，程序会跳过，�
                 replace: '22.1.110.30'
                 alter_exclude: [ ]
 ```
+
+
+###### randpwd，随机密码
+模块将拷贝source/hosts配置下面的的文件，生成source/hosts/配置文件_new，并根据转换规则进行转换，
+*模块参数*
+```yaml
+          'current_pwd_file.yaml': # 模板文件，将在当前目录生成current_pwd_file.yaml_new文件，并按下面的规则生成随机密码
+            - regexp: '(.*):(.*)'
+              replace: '\1: {lib:randompwd:}'
+```
 #### 参与贡献
 
 1.  Fork 本仓库
