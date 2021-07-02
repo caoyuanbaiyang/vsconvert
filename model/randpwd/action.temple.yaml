@@ -1,0 +1,13 @@
+PUBLIC:
+  公共参数key: 公共参数value
+  source: E:\0_APP项目\4_运维工具\Tansible\
+  # dest: C:\Users\hp\Desktop\临时文件夹\vsconvert\dir2\tra
+ACTION:
+  - hosts: [config]
+    tasks:
+      - name: 生成随机密码
+        randpwd:
+           'current_pwd_file.yaml':
+             - regexp: '(.*):(.*)'
+               replace: '\1: {lib:randompwd:}'
+               alter_exclude: [ ]
