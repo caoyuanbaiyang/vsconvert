@@ -3,8 +3,8 @@
 block_cipher = None
 
 
-a = Analysis(['E:\\PyCharmProject\\vsconvert\\main.py'],
-             pathex=['C:\\Users\\hp\\AppData\\Local\\Programs\\Python\\Python37\\Lib', 'C:\\Users\\hp\\AppData\\Local\\Programs\\Python\\Python37\\libs', 'E:\\PyCharmProject\\vsconvert\\venv\\Lib\\site-packages', 'E:\\PyCharmProject\\程序发布\\vsconvert', 'E:\\PyCharmProject\\vsconvert'],
+a = Analysis(['D:\\PyCharmProject\\vsconvert\\main.py'],
+             pathex=['C:\\Users\\tangy\\AppData\\Local\\Programs\\Python\\Python39\\Lib', 'C:\\Users\\tangy\\AppData\\Local\\Programs\\Python\\Python39\\libs', 'D:\\PyCharmProject\\vsconvert\\venv\\Lib\\site-packages', 'D:\\PyCharmProject\\vsconvert'],
              binaries=[],
              datas=[],
              hiddenimports=['model.vsc.vsc','lib.replace_lib','model.vscs.vscs','model.randpwd.randpwd'],
