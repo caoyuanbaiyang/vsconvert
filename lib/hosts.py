@@ -70,6 +70,7 @@ class hosts(object):
                 raise Exception("action文件hosts配置有误，字符串类hosts只支持ALL,其他需要用[] 表示")
         else:
             raise Exception("action文件hosts配置有误，类型只能为ALL或[]")
+
         return rt_hostnames, err_rt_hostnames
 
     def get_host_name_from_pattern(self, pattern):
@@ -95,6 +96,7 @@ class hosts(object):
                     rt_hostnames.append(hostname)
 
         if len(rt_hostnames) == 0:
+            self.mylog.cri("action 配置文件中hosts错误：" + pattern)
             err_hostnames.append(pattern)
         return rt_hostnames, err_hostnames
 
