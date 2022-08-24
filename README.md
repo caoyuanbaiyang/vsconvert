@@ -70,21 +70,21 @@ ACTION:
 *模块参数*
 
 ```yaml
-               'conf\*.cfg': # 指定需要修改的文件范围
-                 # 下面是对指定文件的修改策略，可进行多个修改规则的制定，如IP修改，dev修改等等
-                 # ip 转换
-                 - regexp: '10\.(\d+)\.(\d+)\.(\d+)'
-                   replace: '20.\1.\2.\3'
-                 # DEV 转换 ,alert_exclude 中指定无需转换的文件
-                 - regexp: '"dev"(.*)(\d)(\d)(\d)'
-                   replace: '"dev"\g<1>\g<2>3\g<4>'
-                   alter_exclude: []
-               '*.sh':
-                 - regexp: 'INIT_DEV_ID=(\d)(\d)(\d)'
-                   replace: 'INIT_DEV_ID=\g<1>3\3'
-                   alter_exclude: []
-               # copy_exclude中指定无需进行复制的文件
-               copy_exclude: ['.[clmsv]*', '*.result', 'info.*', '*.info','oradiag*','sunyardlog']
+   'conf\*.cfg': # 指定需要修改的文件范围
+     # 下面是对指定文件的修改策略，可进行多个修改规则的制定，如IP修改，dev修改等等
+     # ip 转换
+     - regexp: '10\.(\d+)\.(\d+)\.(\d+)'
+       replace: '20.\1.\2.\3'
+     # DEV 转换 ,alert_exclude 中指定无需转换的文件
+     - regexp: '"dev"(.*)(\d)(\d)(\d)'
+       replace: '"dev"\g<1>\g<2>3\g<4>'
+       alter_exclude: []
+   '*.sh':
+     - regexp: 'INIT_DEV_ID=(\d)(\d)(\d)'
+       replace: 'INIT_DEV_ID=\g<1>3\3'
+       alter_exclude: []
+   # copy_exclude中指定无需进行复制的文件
+   copy_exclude: ['.[clmsv]*', '*.result', 'info.*', '*.info','oradiag*','sunyardlog']
 ```
 
 ###### vscs，版本转换模块2
@@ -93,32 +93,32 @@ ACTION:
 dirs下面的目录或文件，可以配置为错误文件，程序会跳过，这样保证对多主机不同目录的集中配置的可运行
 *模块参数*
 ```yaml
-          - copy_ignores:
-              ignores: ['*2020*','*cfg']
-          - dirs:
-              - 'conf\': +r
-              - '*.sh':
-          - rpls:
-              # IP 转换
-              - regexp: '12.1.x.x'
-                replace: '22.1.x.x'
-                alter_exclude: []
-              # dev 转换
-              - regexp: 'INIT_DEV_ID=(\d)(\d)(\d)'
-                replace: 'INIT_DEV_ID=\g<1>3\3'
-                alter_exclude: []
-              
-              - regexp: '"dev" : (\d)(\d)(\d)'
-                replace: '"dev" : \g<1>3\3'
-                alter_exclude: []
-          - dirs:
-              - 'conf_1\': +r
-              - '*.sh.bak':
-          - rpls:
-              # IP 转换
-              - regexp: '12.1.110.38'
-                replace: '22.1.110.30'
-                alter_exclude: [ ]
+   - copy_ignores:
+     ignores: ['*2020*','*cfg']
+   - dirs:
+     - 'conf\': +r
+     - '*.sh':
+   - rpls:
+     # IP 转换
+     - regexp: '12.1.x.x'
+       replace: '22.1.x.x'
+       alter_exclude: []
+     # dev 转换
+     - regexp: 'INIT_DEV_ID=(\d)(\d)(\d)'
+       replace: 'INIT_DEV_ID=\g<1>3\3'
+       alter_exclude: []
+     
+     - regexp: '"dev" : (\d)(\d)(\d)'
+       replace: '"dev" : \g<1>3\3'
+       alter_exclude: []
+   - dirs:
+     - 'conf_1\': +r
+     - '*.sh.bak':
+   - rpls:
+     # IP 转换
+     - regexp: '12.1.110.38'
+       replace: '22.1.110.30'
+       alter_exclude: [ ]
 ```
 
 
@@ -126,9 +126,9 @@ dirs下面的目录或文件，可以配置为错误文件，程序会跳过，�
 模块将拷贝source/hosts配置下面的的文件，生成source/hosts/配置文件_new，并根据转换规则进行转换，
 *模块参数*
 ```yaml
-          'current_pwd_file.yaml': # 模板文件，将在当前目录生成current_pwd_file.yaml_new文件，并按下面的规则生成随机密码
-            - regexp: '(.*):(.*)'
-              replace: '\1: {lib:randompwd:}'
+    'current_pwd_file.yaml': # 模板文件，将在当前目录生成current_pwd_file.yaml_new文件，并按下面的规则生成随机密码
+      - regexp: '(.*):(.*)'
+        replace: '\1: {lib:randompwd:密码位数，最低支持9位}'
 ```
 #### 参与贡献
 
