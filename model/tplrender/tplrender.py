@@ -12,7 +12,8 @@ import re
 
 from jinja2 import Environment, FileSystemLoader, Template
 
-C_PATTERN = r'{{db_info\..*\.pwd}}'
+
+C_PATTERN = r'{{db_info\..*\.pwd'
 
 
 def load_json(filename):
@@ -29,6 +30,12 @@ def check_file_for_pattern(file_path, pattern):
     return False
 
 
+def filter_function(input_str):
+    # do nothing just return the input string
+    return input_str
+
+
+
 class ModelClass(object):
     def __init__(self, mylog):
         self.mylog = mylog
@@ -36,6 +43,7 @@ class ModelClass(object):
         self.dest_dir = ""
         self.env_cfg = {}
         self.template_suffix = []
+        self.template_filters = None
 
     def action(self, hostname, pub_param, param):
         self.source_dir = os.path.join(pub_param["source"], hostname)
@@ -45,12 +53,14 @@ class ModelClass(object):
             self.env_cfg["variable_start_string"] = param["variable_start_string"]
         if "variable_end_string" in param:
             self.env_cfg["variable_end_string"] = param["variable_end_string"]
+        if "filters" in param:
+            self.template_filters = param["filters"]
         self.template_suffix = param["templates"]["template_suffix"]
         if os.path.isdir(self.dest_dir):
             if "y" == input(f"目录{self.dest_dir}已存在，删除才可继续，\n 请确认是否删除(y/n)？"):
                 shutil.rmtree(self.dest_dir)
             else:
-                self.mylog.cri(f"目录{self.dest_dir}以存在，选择退出")
+                self.mylog.cri(f"目录{self.dest_dir}已存在，选择退出")
                 exit
         # 文件夹拷贝，主机名级别
         copy_ignore_list = None
@@ -67,9 +77,13 @@ class ModelClass(object):
         render_vars = self.load_vars_files(vars_files)
         # 获取模板文件夹列表
         template_dirs = self.get_template_dirs(param["templates"])
+
+        # 方法1
         template_files = self.get_template_files(template_dirs)
         #  渲染模板文件
         self.render_template_files(template_files, render_vars)
+        # 方法2
+        # self.render_template(template_dirs, render_vars)
 
     def get_vars_files(self, vars_files_cfgs: list) -> list:
         vars_files = []
@@ -81,6 +95,7 @@ class ModelClass(object):
         render_vars = {}
         for vars_file in vars_files:
             # 加载变量文件
+            self.mylog.debug(f" 加载变量文件: {vars_file}")
             vars_data = load_json(vars_file)
             vars_file_name = os.path.basename(vars_file)
             vars_key = os.path.splitext(vars_file_name)[0]
@@ -109,7 +124,7 @@ class ModelClass(object):
             for root, dirs, files in os.walk(directory):
                 for file in files:
                     if os.path.splitext(file)[1] not in self.template_suffix:
-                        self.mylog.debug(f"{file} is not a template file")
+                        self.mylog.debug(os.path.join(root, file) + " is not a template file")
                         continue
                     tpl_files.append(os.path.join(root, file))
         return tpl_files
@@ -123,6 +138,7 @@ class ModelClass(object):
             try:
                 template_path = env.loader.get_source(env, template_file)[1]
                 if os.path.splitext(template_file)[1] not in self.template_suffix:
+                    self.mylog.debug(f"{template_file} is not a template file")
                     continue
                 template = env.get_template(template_file)
                 self.mylog.info(f'  rendering file: {template_path}')
@@ -131,13 +147,13 @@ class ModelClass(object):
                 with open(rendered_file, 'w', encoding='utf-8') as f:
                     f.write(rendered_data)
 
-                if check_file_for_pattern(template_path, C_PATTERN):
-                    self.mylog.info(f'  {template_path} is a DB template file, need to create a .tmpl file')
-                    with open(template_path, 'r', encoding='utf-8') as f1:
-                        content = f1.read()
-                    content1 = content.replace(r'($${{db_info\..*\.pwd}})', r'{% raw %}\g<1>{% endraw %}')
-                    Template(content1, **self.env_cfg).stream(**vars_data).dump(rendered_file + '.tmpl',
-                                                                                encoding='utf-8')
+                # if check_file_for_pattern(template_path, C_PATTERN):
+                #     self.mylog.info(f'          DB template file, need to create a .tmpl file')
+                #     with open(template_path, 'r', encoding='utf-8') as f:
+                #         content = f.read()
+                #     content1 = content.replace(r'($${{db_info\..*\.pwd}})', r'{% raw %}\g<1>{% endraw %}')
+                #     Template(content1, **self.env_cfg).stream(**vars_data).dump(rendered_file + '.tmpl',
+                #                                                                 encoding='utf-8')
 
             except UnicodeDecodeError as e:
                 self.mylog.info(f'  不可打开文件 {template_file} 不转换: {e}')
@@ -145,26 +161,51 @@ class ModelClass(object):
                 self.mylog.error(f'  rendering file {template_file} failed: {e}')
 
     def render_template_files(self, template_files: list, vars_data: list):
+        env = Environment(**self.env_cfg)
+        if self.template_filters:
+            self.load_filters(env, self.template_filters)
+
         for template_file in template_files:
             try:
-                with open(template_file, 'r', encoding='utf-8') as f1:
-                    original_template_string = f1.read()
+                with open(template_file, 'r', encoding='utf-8') as f:
+                    original_template_string = f.read()
 
                 self.mylog.info(f'  rendering file: {template_file}')
-                template_all = Template(original_template_string, **self.env_cfg)
+
+                template_all = env.from_string(original_template_string)
+
                 rendered_data = template_all.render(**vars_data)
                 rendered_file = os.path.splitext(template_file)[0]
                 with open(rendered_file, 'w', encoding='utf-8') as f:
                     f.write(rendered_data)
 
                 if check_file_for_pattern(template_file, C_PATTERN):
-                    self.mylog.info(f'                DB template file, need to create a .tmpl file')
-                    template_raw_string = re.sub(r'\$\$\{\{db_info\..*?\.pwd\}\}', r'{% raw %}\g<0>{% endraw %}',
+                    self.mylog.debug(f'                DB template file, need to create a .tmpl file')
+                    template_raw_string = re.sub(r'\$\$\{\{db_info\..*?\.pwd.*?\}\}', r'{% raw %}\g<0>{% endraw %}',
                                                  original_template_string)
-                    Template(template_raw_string, **self.env_cfg).stream(**vars_data).dump(rendered_file + '.tmpl',
-                                                                                           encoding='utf-8')
+                    template_raw = env.from_string(template_raw_string)
+                    rendered_raw_data = template_raw.render(**vars_data)
+                    rendered_raw_file = os.path.splitext(rendered_file)[0] + '.tmpl'
+                    with open(rendered_raw_file, 'w', encoding='utf-8') as f:
+                        f.write(rendered_raw_data)
+                    self.mylog.debug(f'                DB template file, create a .tmpl file: {rendered_raw_file}')
 
             except UnicodeDecodeError as e:
                 self.mylog.info(f'  不可打开文件 {template_file} 不转换: {e}')
             except Exception as e:
                 self.mylog.error(f'  rendering file {template_file} failed: {e}')
+
+    def load_filters(self, env: Environment, filter_file: str):
+        """
+        加载自定义过滤器
+        :param filter_file:
+        :param env:
+        :return:
+        """
+        filter_data = load_json(filter_file)
+        for filter_name in filter_data.keys():
+            env.filters[filter_name] = filter_function
+        #
+        # for filter_name, filter_function in filters.items():
+        #     filter_name = filter_name.replace('-', '_')
+        #     env.filters[filter_name] = getattr(db_pwd_filters, filter_name)
