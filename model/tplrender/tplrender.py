@@ -10,8 +10,9 @@ import glob
 import json
 import re
 
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment
 
+import lib.paramiko_ssh as paramiko_ssh
 
 C_PATTERN = r'{{db_info\..*\.pwd'
 
@@ -30,10 +31,9 @@ def check_file_for_pattern(file_path, pattern):
     return False
 
 
-def filter_function(input_str):
+def filter_function(input_str: str) -> str:
     # do nothing just return the input string
     return input_str
-
 
 
 class ModelClass(object):
@@ -57,10 +57,10 @@ class ModelClass(object):
             self.template_filters = param["filters"]
         self.template_suffix = param["templates"]["template_suffix"]
         if os.path.isdir(self.dest_dir):
-            if "y" == input(f"目录{self.dest_dir}已存在，删除才可继续，\n 请确认是否删除(y/n)？"):
+            if "y" == input(f"主机目录{self.dest_dir}已存在，删除才可继续，\n 请确认是否删除(y/n)？"):
                 shutil.rmtree(self.dest_dir)
             else:
-                self.mylog.cri(f"目录{self.dest_dir}已存在，选择退出")
+                self.mylog.cri(f"主机目录{self.dest_dir}已存在，选择退出")
                 exit
         # 文件夹拷贝，主机名级别
         copy_ignore_list = None
@@ -77,13 +77,9 @@ class ModelClass(object):
         render_vars = self.load_vars_files(vars_files)
         # 获取模板文件夹列表
         template_dirs = self.get_template_dirs(param["templates"])
-
-        # 方法1
         template_files = self.get_template_files(template_dirs)
         #  渲染模板文件
         self.render_template_files(template_files, render_vars)
-        # 方法2
-        # self.render_template(template_dirs, render_vars)
 
     def get_vars_files(self, vars_files_cfgs: list) -> list:
         vars_files = []
@@ -130,40 +126,10 @@ class ModelClass(object):
         return tpl_files
 
     # 渲染模板文件
-    def render_template(self, template_dirs: list, vars_data: list):
-        loader = FileSystemLoader(template_dirs)
-        env = Environment(loader=loader, **self.env_cfg)
-        template_list = loader.list_templates()
-        for template_file in template_list:
-            try:
-                template_path = env.loader.get_source(env, template_file)[1]
-                if os.path.splitext(template_file)[1] not in self.template_suffix:
-                    self.mylog.debug(f"{template_file} is not a template file")
-                    continue
-                template = env.get_template(template_file)
-                self.mylog.info(f'  rendering file: {template_path}')
-                rendered_data = template.render(**vars_data)
-                rendered_file = os.path.splitext(template_path)[0]
-                with open(rendered_file, 'w', encoding='utf-8') as f:
-                    f.write(rendered_data)
-
-                # if check_file_for_pattern(template_path, C_PATTERN):
-                #     self.mylog.info(f'          DB template file, need to create a .tmpl file')
-                #     with open(template_path, 'r', encoding='utf-8') as f:
-                #         content = f.read()
-                #     content1 = content.replace(r'($${{db_info\..*\.pwd}})', r'{% raw %}\g<1>{% endraw %}')
-                #     Template(content1, **self.env_cfg).stream(**vars_data).dump(rendered_file + '.tmpl',
-                #                                                                 encoding='utf-8')
-
-            except UnicodeDecodeError as e:
-                self.mylog.info(f'  不可打开文件 {template_file} 不转换: {e}')
-            except Exception as e:
-                self.mylog.error(f'  rendering file {template_file} failed: {e}')
-
     def render_template_files(self, template_files: list, vars_data: list):
         env = Environment(**self.env_cfg)
         if self.template_filters:
-            self.load_filters(env, self.template_filters)
+            env.filters['filter_function'] = filter_function
 
         for template_file in template_files:
             try:
@@ -171,10 +137,27 @@ class ModelClass(object):
                     original_template_string = f.read()
 
                 self.mylog.info(f'  rendering file: {template_file}')
+                # 如何包含数据库的字定义过滤器，则由异常处理调整
+                try:
+                    template_all = env.from_string(original_template_string)
+                    rendered_data = template_all.render(**vars_data)
+                except Exception as e:
+                    if not self.template_filters:
+                        self.mylog.error(f'  rendering file {template_file} failed: {e}')
+                    else:
+                        if "No filter named" in str(e) and self.template_filters:
+                            filter_str = str(e).split()[3].split("'")[1]
+                            db_pwd_path = re.search(r'db_info\..*?\.pwd', original_template_string).group()
+                            db_pwd = env.from_string('$${{' + db_pwd_path + '}}').render(**vars_data)
+                            template_string = original_template_string.replace(filter_str, 'filter_function')
+                            t1, db_pwd1, t2 = self.get_encrypt_pwd(filter_str, db_pwd)
+                            db_pwd1 = db_pwd1.rstrip("\n")
+                            template_string = re.sub(r'(\$\$\{\{)(db_info\..*?\.pwd)', rf'\1 db_pwd ', template_string)
+                            template_all = env.from_string(template_string)
+                            rendered_data = template_all.render(**vars_data, db_pwd=db_pwd1)
+                        else:
+                            self.mylog.error(f'  rendering file {template_file} failed: {e}')
 
-                template_all = env.from_string(original_template_string)
-
-                rendered_data = template_all.render(**vars_data)
                 rendered_file = os.path.splitext(template_file)[0]
                 with open(rendered_file, 'w', encoding='utf-8') as f:
                     f.write(rendered_data)
@@ -195,17 +178,17 @@ class ModelClass(object):
             except Exception as e:
                 self.mylog.error(f'  rendering file {template_file} failed: {e}')
 
-    def load_filters(self, env: Environment, filter_file: str):
-        """
-        加载自定义过滤器
-        :param filter_file:
-        :param env:
-        :return:
-        """
-        filter_data = load_json(filter_file)
-        for filter_name in filter_data.keys():
-            env.filters[filter_name] = filter_function
-        #
-        # for filter_name, filter_function in filters.items():
-        #     filter_name = filter_name.replace('-', '_')
-        #     env.filters[filter_name] = getattr(db_pwd_filters, filter_name)
+    def get_encrypt_pwd(self, encrypt_type: str, intput_str: str) -> str:
+        cfg_data = load_json(self.template_filters)
+        runner = paramiko_ssh.Runner('config/id_rsa')
+        if encrypt_type in cfg_data:
+            conn = paramiko_ssh.Connection(runner, cfg_data[encrypt_type]['ip'], '22', cfg_data[encrypt_type]['username'], '1')
+            conn.connect()
+            print(paramiko_ssh.SSH_CONNECTION_CACHE.keys())
+            cmd = cfg_data[encrypt_type]['encrypt'].replace("$1", intput_str)
+            exit_status, n, stdout, stderr = conn.exec_command(cmd)
+            print(f"exit_status: {exit_status}")
+            print(f"stdout: {stdout}")
+            if stderr:
+                print(f"stderr: {stderr}")
+            return exit_status, stdout, stderr
