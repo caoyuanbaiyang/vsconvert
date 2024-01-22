@@ -57,9 +57,10 @@ class VsConvert(object):
             raise Exception("public source目录不存在")
 
         # action文件，public中的dest配置的目录已存在且选择删除则删除
-        if os.path.isdir(pub_param["dest"]) and input(f"目录 {pub_param['dest']} 已存在，是否删除(y/n) ") == "y":
+        if os.path.isdir(pub_param["dest"]) and input(f"dest目录 {pub_param['dest']} 已存在，是否删除(y/n) ") == "y":
             shutil.rmtree(pub_param["dest"])
-        os.makedirs(pub_param["dest"])
+        if not os.path.isdir(pub_param["dest"]):
+            os.makedirs(pub_param["dest"])
 
         # 检查hosts 配置是否有错误，如果有错误，则不运行
         hostobj = hosts(self.mylog, self.groups, self.action_cfg["PUBLIC"]["source"])
