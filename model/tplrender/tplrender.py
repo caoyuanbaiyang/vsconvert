@@ -7,9 +7,10 @@
 import os
 import shutil
 import glob
-import json
+import commentjson
 import re
 
+import chardet
 from jinja2 import Environment
 
 import lib.paramiko_ssh as paramiko_ssh
@@ -17,10 +18,43 @@ import lib.paramiko_ssh as paramiko_ssh
 C_PATTERN = r'{{db_info\..*\.pwd'
 
 
+def open_file(filename):
+    # 以二进制模式打开文件以检测编码
+    with open(filename, 'rb') as file:
+        raw_data = file.read(1000)
+        # 检测文件编码
+        result = chardet.detect(raw_data)
+        encoding = result['encoding']
+        confidence = result['confidence']
+        if confidence < 0.9:
+            # 如果检测置信度低于0.9，默认使用utf-8
+            encoding = 'utf-8'
+
+    # 以检测到的编码打开文件并加载JSON数据
+    with open(filename, 'r', encoding=encoding) as f:
+        return encoding, f.read()
+
+
 def load_json(filename):
-    with open(filename, 'r') as file:
-        data = json.load(file)
-    return data
+    try:
+        # 以二进制模式打开文件以检测编码
+        with open(filename, 'rb') as file:
+            raw_data = file.read(1000)
+            # 检测文件编码
+            result = chardet.detect(raw_data)
+            encoding = result['encoding']
+            confidence = result['confidence']
+            if confidence < 0.9:
+                # 如果检测置信度低于0.9，默认使用utf-8
+                encoding = 'utf-8'
+
+        # 以检测到的编码打开文件并加载JSON数据
+        with open(filename, 'r', encoding=encoding, errors='ignore') as file:
+            data = commentjson.load(file)
+        return data
+    except Exception as e:
+        print(f"Error loading JSON file {filename}: {e}")
+        return ''
 
 
 def check_file_for_pattern(file_path, pattern):
@@ -29,11 +63,6 @@ def check_file_for_pattern(file_path, pattern):
             if re.search(pattern, line):
                 return True
     return False
-
-
-def filter_function(input_str: str) -> str:
-    # do nothing just return the input string
-    return input_str
 
 
 class ModelClass(object):
@@ -127,68 +156,60 @@ class ModelClass(object):
 
     # 渲染模板文件
     def render_template_files(self, template_files: list, vars_data: list):
+        # 创建Jinja2环境
         env = Environment(**self.env_cfg)
-        if self.template_filters:
-            env.filters['filter_function'] = filter_function
 
+        # 根据dbpwd.json创建Jinja2的过滤函数
+        if self.template_filters:
+            # 加载dbpwd.json文件
+            cfg_data = load_json(self.template_filters)
+            # 遍历dbpwd.json中的每个过滤函数
+            for filter_name in cfg_data:
+                # 创建过滤函数
+                def create_filter(filter_name):
+                    def filter_function(input_str):
+                        # 创建SSH连接
+                        runner = paramiko_ssh.Runner('config/id_rsa')
+                        conn = paramiko_ssh.Connection(runner, cfg_data[filter_name]['ip'], '22',
+                                                       cfg_data[filter_name]['username'], '1')
+                        conn.connect()
+                        # 执行加密命令
+                        cmd = cfg_data[filter_name]['encrypt'].replace("$1", input_str)
+                        exit_status, n, stdout, stderr = conn.exec_command(cmd)
+                        # 如果有错误，记录错误日志
+                        if stderr:
+                            self.mylog.error(f"Encryption error for {filter_name}: {stderr}")
+                        # 返回加密后的字符串
+                        return stdout.rstrip("\n")
+
+                    return filter_function
+
+                # 将过滤函数添加到Jinja2环境中
+                env.filters[filter_name] = create_filter(filter_name)
+
+        # 遍历模板文件列表
         for template_file in template_files:
             try:
-                with open(template_file, 'r', encoding='utf-8') as f:
-                    original_template_string = f.read()
+                # # 打开模板文件
+                encoding, original_template_string = open_file(template_file)
 
+                # 记录日志
                 self.mylog.info(f'  rendering file: {template_file}')
-                # 如何包含数据库的字定义过滤器，则由异常处理调整
-                try:
-                    template_all = env.from_string(original_template_string)
-                    rendered_data = template_all.render(**vars_data)
-                except Exception as e:
-                    if not self.template_filters:
-                        self.mylog.error(f'  rendering file {template_file} failed: {e}')
-                    else:
-                        if "No filter named" in str(e) and self.template_filters:
-                            filter_str = str(e).split()[3].split("'")[1]
-                            db_pwd_path = re.search(r'db_info\..*?\.pwd', original_template_string).group()
-                            db_pwd = env.from_string('$${{' + db_pwd_path + '}}').render(**vars_data)
-                            template_string = original_template_string.replace(filter_str, 'filter_function')
-                            t1, db_pwd1, t2 = self.get_encrypt_pwd(filter_str, db_pwd)
-                            db_pwd1 = db_pwd1.rstrip("\n")
-                            template_string = re.sub(r'(\$\$\{\{)(db_info\..*?\.pwd)', rf'\1 db_pwd ', template_string)
-                            template_all = env.from_string(template_string)
-                            rendered_data = template_all.render(**vars_data, db_pwd=db_pwd1)
-                        else:
-                            self.mylog.error(f'  rendering file {template_file} failed: {e}')
 
+                # 渲染模板
+                template_all = env.from_string(original_template_string)
+                rendered_data = template_all.render(**vars_data)
+
+                # 生成渲染后的文件名
                 rendered_file = os.path.splitext(template_file)[0]
-                with open(rendered_file, 'w', encoding='utf-8') as f:
+                # 写入渲染后的文件
+                with open(rendered_file, 'w', encoding=encoding, errors='ignore') as f:
                     f.write(rendered_data)
 
-                if check_file_for_pattern(template_file, C_PATTERN):
-                    self.mylog.debug(f'                DB template file, need to create a .tmpl file')
-                    template_raw_string = re.sub(r'\$\$\{\{db_info\..*?\.pwd.*?\}\}', r'{% raw %}\g<0>{% endraw %}',
-                                                 original_template_string)
-                    template_raw = env.from_string(template_raw_string)
-                    rendered_raw_data = template_raw.render(**vars_data)
-                    rendered_raw_file = os.path.splitext(rendered_file)[0] + '.tmpl'
-                    with open(rendered_raw_file, 'w', encoding='utf-8') as f:
-                        f.write(rendered_raw_data)
-                    self.mylog.debug(f'                DB template file, create a .tmpl file: {rendered_raw_file}')
-
             except UnicodeDecodeError as e:
+                # 记录不可打开文件的日志
                 self.mylog.info(f'  不可打开文件 {template_file} 不转换: {e}')
             except Exception as e:
+                # 记录渲染失败的日志
                 self.mylog.error(f'  rendering file {template_file} failed: {e}')
 
-    def get_encrypt_pwd(self, encrypt_type: str, intput_str: str) -> str:
-        cfg_data = load_json(self.template_filters)
-        runner = paramiko_ssh.Runner('config/id_rsa')
-        if encrypt_type in cfg_data:
-            conn = paramiko_ssh.Connection(runner, cfg_data[encrypt_type]['ip'], '22', cfg_data[encrypt_type]['username'], '1')
-            conn.connect()
-            print(paramiko_ssh.SSH_CONNECTION_CACHE.keys())
-            cmd = cfg_data[encrypt_type]['encrypt'].replace("$1", intput_str)
-            exit_status, n, stdout, stderr = conn.exec_command(cmd)
-            print(f"exit_status: {exit_status}")
-            print(f"stdout: {stdout}")
-            if stderr:
-                print(f"stderr: {stderr}")
-            return exit_status, stdout, stderr
