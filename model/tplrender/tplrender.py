@@ -18,7 +18,7 @@ import lib.paramiko_ssh as paramiko_ssh
 C_PATTERN = r'{{db_info\..*\.pwd'
 
 
-def open_file(filename):
+def get_encoding(filename):
     # 以二进制模式打开文件以检测编码
     with open(filename, 'rb') as file:
         raw_data = file.read(1000)
@@ -29,6 +29,12 @@ def open_file(filename):
         if confidence < 0.9:
             # 如果检测置信度低于0.9，默认使用utf-8
             encoding = 'utf-8'
+        return encoding
+
+
+def open_file(filename):
+    # 以二进制模式打开文件以检测编码
+    encoding = get_encoding(filename)
 
     # 以检测到的编码打开文件并加载JSON数据
     with open(filename, 'r', encoding=encoding) as f:
@@ -38,15 +44,7 @@ def open_file(filename):
 def load_json(filename):
     try:
         # 以二进制模式打开文件以检测编码
-        with open(filename, 'rb') as file:
-            raw_data = file.read(1000)
-            # 检测文件编码
-            result = chardet.detect(raw_data)
-            encoding = result['encoding']
-            confidence = result['confidence']
-            if confidence < 0.9:
-                # 如果检测置信度低于0.9，默认使用utf-8
-                encoding = 'utf-8'
+        encoding = get_encoding(filename)
 
         # 以检测到的编码打开文件并加载JSON数据
         with open(filename, 'r', encoding=encoding, errors='ignore') as file:
